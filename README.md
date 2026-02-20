@@ -8,5 +8,20 @@ This repository contains an end to end pipeline that ingest Chicago Taxi Data us
 
 **CLOUDWATCH LOGS**
 
+This pipeline did not require an Alarm as the data pulled was past data pulled only once. (Used AWS Free Tier)
+
+<img width="975" height="198" alt="image" src="https://github.com/user-attachments/assets/2bca7061-8714-48e5-9b72-b9725cc401e2" />
+
+**GLUE JOB**
+
+<img width="879" height="92" alt="image" src="https://github.com/user-attachments/assets/b84f80fd-9c74-48dd-aaed-be7c6aed2ae7" />
+
+**SUCCESSFUL GLUE CRAWLER (CLOUDWATCH)**
+
+<img width="933" height="179" alt="image" src="https://github.com/user-attachments/assets/ed659ef7-ff52-4880-b5bd-a4754d93e16f" />
+
+
+
+
 
 
