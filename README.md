@@ -20,6 +20,12 @@ This pipeline did not require an Alarm as the data pulled was past data pulled o
 
 <img width="933" height="179" alt="image" src="https://github.com/user-attachments/assets/ed659ef7-ff52-4880-b5bd-a4754d93e16f" />
 
+**STEP FUNCTIONS: GRAPH VIEW**
+
+<img width="744" height="571" alt="image" src="https://github.com/user-attachments/assets/e25b683b-dd22-4ed5-a3c3-8a7ca8f6bf8d" />
+
+
+
 
 
 
