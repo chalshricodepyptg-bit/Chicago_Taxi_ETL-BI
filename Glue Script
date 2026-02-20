@@ -1,0 +1,97 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsgluedq.transforms import EvaluateDataQuality
+from awsglue import DynamicFrame
+
+def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFrame:
+    for alias, frame in mapping.items():
+        frame.toDF().createOrReplaceTempView(alias)
+    result = spark.sql(query)
+    return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+
+# Default ruleset used by all target nodes with data quality enabled
+DEFAULT_DATA_QUALITY_RULESET = """
+    Rules = [
+        ColumnCount > 0
+    ]
+"""
+
+# Script generated for node Chicago_Taxi_Data_Raw
+Chicago_Taxi_Data_Raw_node1771451370388 = glueContext.create_dynamic_frame.from_options(format_options={"quoteChar": "\"", "withHeader": True, "separator": ",", "optimizePerformance": False}, connection_type="s3", format="csv", connection_options={"paths": ["s3://chicago-taxi-raw-2024"], "recurse": True}, transformation_ctx="Chicago_Taxi_Data_Raw_node1771451370388")
+
+# Script generated for node Taxi_Data_Required_Fields
+Taxi_Data_Required_Fields_node1771451500791 = SelectFields.apply(frame=Chicago_Taxi_Data_Raw_node1771451370388, paths=["trip_id", "trip_miles", "trip_seconds", "fare", "tips", "trip_start_timestamp", "trip_end_timestamp", "payment_type"], transformation_ctx="Taxi_Data_Required_Fields_node1771451500791")
+
+# Script generated for node Taxi_Data_Type_Update
+Taxi_Data_Type_Update_node1771454994147 = ApplyMapping.apply(frame=Taxi_Data_Required_Fields_node1771451500791, mappings=[("trip_start_timestamp", "string", "trip_start_timestamp", "string"), ("trip_id", "string", "trip_id", "string"), ("tips", "string", "tips", "double"), ("payment_type", "string", "payment_type", "string"), ("trip_end_timestamp", "string", "trip_end_timestamp", "string"), ("fare", "string", "fare", "double"), ("trip_miles", "string", "trip_miles", "double"), ("trip_seconds", "string", "trip_seconds", "long")], transformation_ctx="Taxi_Data_Type_Update_node1771454994147")
+
+# Script generated for node Taxi_Timestamp_Add_In
+Taxi_Timestamp_Add_In_node1771456152553 = ApplyMapping.apply(frame=Taxi_Data_Type_Update_node1771454994147, mappings=[("trip_start_timestamp", "string", "trip_start_timestamp", "string"), ("trip_id", "string", "taxi_id", "string"), ("tips", "double", "tips", "double"), ("payment_type", "string", "payment_type", "string"), ("trip_end_timestamp", "string", "trip_end_timestamp", "string"), ("fare", "double", "fare", "double"), ("trip_miles", "double", "trip_miles", "double"), ("trip_seconds", "long", "trip_seconds", "long")], transformation_ctx="Taxi_Timestamp_Add_In_node1771456152553")
+
+# Script generated for node Taxi_SQL_parsing
+SqlQuery0 = '''
+SELECT
+  taxi_id,
+  trip_miles,
+  trip_seconds,
+  fare,
+  tips,
+  payment_type,
+  /* parse pickup */
+  COALESCE(
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ssX"),
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+    to_timestamp(trip_start_timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
+    to_timestamp(regexp_replace(trip_start_timestamp, 'Z$', '+00:00'), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+  ) AS pickup_dt,
+  /* parse dropoff */
+  COALESCE(
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ssXXX"),
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ssX"),
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+    to_timestamp(trip_end_timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
+    to_timestamp(regexp_replace(trip_end_timestamp, 'Z$', '+00:00'), "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+  ) AS dropoff_dt
+FROM MyDataSource1
+'''
+Taxi_SQL_parsing_node1771455296631 = sparkSqlQuery(glueContext, query = SqlQuery0, mapping = {"myDataSource1":Taxi_Timestamp_Add_In_node1771456152553}, transformation_ctx = "Taxi_SQL_parsing_node1771455296631")
+
+# Script generated for node Taxi_SQL_Define
+SqlQuery2 = '''
+SELECT *
+FROM myDataSource
+WHERE pickup_dt IS NOT NULL
+  AND dropoff_dt IS NOT NULL
+'''
+Taxi_SQL_Define_node1771458608280 = sparkSqlQuery(glueContext, query = SqlQuery2, mapping = {"myDataSource":Taxi_SQL_parsing_node1771455296631}, transformation_ctx = "Taxi_SQL_Define_node1771458608280")
+
+# Script generated for node Taxi_SQL_Input
+SqlQuery1 = '''
+SELECT
+  *,
+  year(pickup_dt)  AS trip_year,
+  month(pickup_dt) AS trip_month
+FROM ValidRows
+'''
+Taxi_SQL_Input_node1771459379628 = sparkSqlQuery(glueContext, query = SqlQuery1, mapping = {"ValidRows":Taxi_SQL_Define_node1771458608280}, transformation_ctx = "Taxi_SQL_Input_node1771459379628")
+
+# Script generated for node Chicago_Taxi_Data_Curated
+EvaluateDataQuality().process_rows(frame=Taxi_SQL_Input_node1771459379628, ruleset=DEFAULT_DATA_QUALITY_RULESET, publishing_options={"dataQualityEvaluationContext": "EvaluateDataQuality_node1771450216880", "enableDataQualityResultsPublishing": True}, additional_options={"dataQualityResultsPublishing.strategy": "BEST_EFFORT", "observations.scope": "ALL"})
+Chicago_Taxi_Data_Curated_node1771461072144 = glueContext.write_dynamic_frame.from_options(frame=Taxi_SQL_Input_node1771459379628, connection_type="s3", format="glueparquet", connection_options={"path": "s3://chicago-taxi-curated-2024", "partitionKeys": ["trip_year", "trip_month"]}, format_options={"compression": "snappy"}, transformation_ctx="Chicago_Taxi_Data_Curated_node1771461072144")
+
+job.commit()
