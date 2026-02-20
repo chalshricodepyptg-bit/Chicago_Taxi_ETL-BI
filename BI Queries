@@ -1,0 +1,35 @@
+Create Date Column:
+Date = 
+VAR StartDate = DATE(2024,1,1)
+VAR EndDate   = DATE(2026,12,31)
+RETURN
+ADDCOLUMNS (
+    CALENDAR(StartDate, EndDate),
+    "Year", YEAR([Date]),
+    "Month", FORMAT([Date],"MMM"),
+    "MonthNumber", MONTH([Date]),
+    "YearMonth", FORMAT([Date],"YYYY-MM"),
+    "Weekday", FORMAT([Date],"ddd"),
+    "WeekdayNum", WEEKDAY([Date],2)
+)
+
+Avg Trip Distance:
+Average Trip Distance = AVERAGE('curated_with_date'[trip_miles])
+
+Avg Trip Time:
+Average Trip Time = AVERAGE('curated_with_date'[trip_seconds]) / 60
+
+Pickups per Hour:
+Pickup Hour = HOUR( MAX('curated_with_date'[pickup_dt]) )
+
+Total Fare Revenue:
+Total Fare Revenue = SUM('curated_with_date'[fare])
+
+Total Revenue:
+Total Revenue = [Total Fare Revenue] + [Total Tips]
+
+Total Tips:
+Total Tips = SUM('curated_with_date'[tips])
+
+Total Trips:
+Trips = COUNTROWS('curated_with_date')
