@@ -1,0 +1,37 @@
+{
+  "Comment": "Chicago Taxi January 2024 Extract",
+  "StartAt": "ExtractBatch",
+  "States": {
+    "ExtractBatch": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "extract-chicago-2024-jan",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.lambda",
+      "Next": "Check"
+    },
+    "Check": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.lambda.Payload.done",
+          "BooleanEquals": true,
+          "Next": "Finished"
+        }
+      ],
+      "Default": "NextOffset"
+    },
+    "NextOffset": {
+      "Type": "Pass",
+      "Parameters": {
+        "offset.$": "$.lambda.Payload.next_offset"
+      },
+      "Next": "ExtractBatch"
+    },
+    "Finished": {
+      "Type": "Succeed"
+    }
+  }
+}
